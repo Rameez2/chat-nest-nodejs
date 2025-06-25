@@ -6,44 +6,41 @@ const cors = require('cors');
 const app = express();
 const server = http.createServer(app);
 
-// Allow CORS for localhost:3000 (your Next.js frontend)
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST']
-})); 
- 
+// CORS settings
+app.use(cors({ origin: '*', methods: ['GET', 'POST'] }));
+
+
 const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  }
+  cors: { origin: '*', methods: ['GET', 'POST'] },
 });
 
-// Store waiting user
-let waitingUser = null;
+let queue = [];
 
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
   socket.on('join', ({ username }) => {
     socket.username = username;
+    queue.push(socket);
 
-    if (!waitingUser) {
-      waitingUser = socket;
-      socket.emit('wait-for-offer');
-    } else {
-      // Pair users
-      const partner = waitingUser;
-      waitingUser = null;
+    if (queue.length >= 2) {
+      const [user1, user2] = queue.splice(0, 2);
 
-      socket.partnerId = partner.id;
-      partner.partnerId = socket.id;
+      user1.partnerId = user2.id;
+      user2.partnerId = user1.id;
 
-      // Ask partner to create an offer
-      partner.emit('create-offer', { partnerUsername: socket.username });
-      socket.emit('wait-for-offer', { partnerUsername: partner.username });
+      user1.emit('matched', {
+        role: 'offerer',
+        partnerUsername: user2.username,
+      });
+      user2.emit('matched', {
+        role: 'answerer',
+        partnerUsername: user1.username,
+      });
     }
   });
+
+
 
   socket.on('send-offer', ({ offer }) => {
     const partnerSocket = io.sockets.sockets.get(socket.partnerId);
@@ -61,9 +58,8 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
-    if (waitingUser && waitingUser.id === socket.id) {
-      waitingUser = null;
-    }
+
+    queue = queue.filter((s) => s.id !== socket.id);
 
     if (socket.partnerId) {
       const partnerSocket = io.sockets.sockets.get(socket.partnerId);
@@ -76,5 +72,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(4000, () => {
-  console.log('✅ Socket.IO server running on http://localhost:4000');
+  console.log('✅ Server running on http://localhost:4000');
 });
