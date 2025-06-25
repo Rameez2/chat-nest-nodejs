@@ -11,7 +11,7 @@ app.use(cors({
   origin: '*',
   methods: ['GET', 'POST']
 })); 
-
+ 
 const io = new Server(server, {
   cors: {
     origin: '*',
