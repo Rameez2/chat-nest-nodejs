@@ -10,7 +10,7 @@ const server = http.createServer(app);
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST']
-}));
+})); 
 
 const io = new Server(server, {
   cors: {
