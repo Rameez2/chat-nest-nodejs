@@ -177,7 +177,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start the HTTP server on port 4000
-server.listen(4000, () => {
-  console.log('✅ Server running on http://localhost:4000');
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
 });
